@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-display: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'Space Grotesk', monospace;
+
+    /* Pure Dark Mode Design System Tokens */
+    --bg-page: #0E1117;
+    --bg-card: #161A23;
+    --bg-card-secondary: #1E2330;
+    --bg-elevated: #1E2330;
+    --border-subtle: #222734;
+    --border-secondary: #2A3142;
+    --border-accent: #00E676;
+    
+    --text-primary: #FFFFFF;
+    --text-secondary: #8A94A6;
+    --text-muted: #555F73;
+    
+    /* Accents & Glows */
+    --accent-primary: #FFFFFF;
+    --accent-contrast: #0E1117;
+    --accent-income: #00E676;
+    --accent-income-bg: rgba(0, 230, 118, 0.12);
+    --accent-expense: #FF5252;
+    --accent-expense-bg: rgba(255, 82, 82, 0.12);
+    --accent-brand: #6366F1;
+    --accent-highlight: #3B82F6;
+
+    /* Floating Nav Dock */
+    --nav-bg: rgba(22, 26, 35, 0.85);
+    --nav-border: rgba(255, 255, 255, 0.08);
+    --nav-active-pill: #FFFFFF;
+    --nav-active-icon: #0E1117;
+    --nav-inactive-icon: #8A94A6;
+  }
+}
+
+html, body {
+  font-family: var(--font-body);
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  min-height: 100vh;
+  min-height: 100dvh;
+  min-height: 100svh;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+  overflow-x: hidden;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* Custom Safe Area & Nav Bottom Padding */
+.pb-nav {
+  padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 1rem));
+}
+
+.pt-safe {
+  padding-top: max(1rem, env(safe-area-inset-top, 1rem));
+}
+
+/* Card Glows */
+.income-glow {
+  box-shadow: 0 0 12px rgba(0, 230, 118, 0.25);
+}
+
+.expense-glow {
+  box-shadow: 0 0 12px rgba(255, 82, 82, 0.25);
+}
+
+.card-glow {
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.5);
+}
+
+.nav-dock-glow {
+  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.6);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 9999px;
+}
+
+/* Hide scrollbar for tabs */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

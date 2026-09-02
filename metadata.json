@@ -1,0 +1,7 @@
+{
+  "name": "Telegram Finance",
+  "description": "Telegram Mini App для просмотра личных финансов, анализа расходов и истории транзакций",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
