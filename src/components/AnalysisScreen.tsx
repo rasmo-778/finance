@@ -52,8 +52,8 @@ export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
   isLoading,
   onRefresh,
 }) => {
-  // PROBLEM 3: Default period MUST be "Сегодня" ('today')
-  const [activePeriod, setActivePeriod] = useState<PeriodTabKey>('today');
+  // PROBLEM 3: Default period MUST be "7 дней" ('week')
+  const [activePeriod, setActivePeriod] = useState<PeriodTabKey>('week');
   const [selectedType, setSelectedType] = useState<'expense' | 'income'>('expense');
   const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
 

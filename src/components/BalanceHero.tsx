@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { BalanceSummary } from '../types';
-import { getCurrencySymbol, formatJustNumber } from '../utils/formatters';
+import { getCurrencySymbol } from '../utils/formatters';
 import { AnimatedNumber } from './AnimatedNumber';
 
 interface BalanceHeroProps {
@@ -13,9 +13,9 @@ interface BalanceHeroProps {
 /** Scales font-size down if formatted number is long. */
 function balanceFontSize(value: number): string {
   const len = String(Math.abs(Math.round(value))).length;
-  if (len <= 7) return 'clamp(2rem, 8vw, 2.5rem)';
-  if (len <= 10) return 'clamp(1.5rem, 6.5vw, 2rem)';
-  return 'clamp(1.1rem, 5vw, 1.5rem)';
+  if (len <= 7) return 'clamp(1.8rem, 7.5vw, 2.5rem)';
+  if (len <= 10) return 'clamp(1.4rem, 6vw, 1.9rem)';
+  return 'clamp(1.1rem, 4.5vw, 1.4rem)';
 }
 
 export const BalanceHero: React.FC<BalanceHeroProps> = ({
@@ -70,11 +70,11 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
         </div>
       )}
 
-      {/* Main balance card */}
+      {/* Main balance card — with overflow: hidden to ensure contained pills */}
       <div
         id="balance-hero-card"
         className="card"
-        style={{ padding: '1.25rem 1.375rem' }}
+        style={{ padding: '1.25rem 1.25rem', overflow: 'hidden' }}
       >
         {/* Card header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -86,9 +86,6 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
                 height: '7px',
                 borderRadius: '50%',
                 backgroundColor: isPositive ? 'var(--accent-income)' : 'var(--accent-expense)',
-                boxShadow: isPositive
-                  ? '0 0 6px var(--accent-income-glow)'
-                  : '0 0 6px var(--accent-expense-glow)',
                 transition: 'background-color 0.3s ease',
               }}
             />
@@ -149,32 +146,35 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
           </div>
         </div>
 
-        {/* Income & Expense pills */}
+        {/* Income & Expense pills — perfectly symmetric grid, minWidth: 0, overflow: hidden */}
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: '0.65rem',
+            gap: '0.625rem',
             paddingTop: '1rem',
             borderTop: '1px solid var(--border-subtle)',
           }}
         >
-          {/* Income */}
+          {/* Income Pill */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.625rem',
-              padding: '0.75rem',
+              gap: '0.5rem',
+              padding: '0.65rem 0.75rem',
               borderRadius: '16px',
               background: 'var(--accent-income-dim)',
-              border: '1px solid var(--accent-income-glow)',
+              border: '1px solid var(--accent-income-dim)',
+              minWidth: 0,
+              overflow: 'hidden',
+              boxSizing: 'border-box',
             }}
           >
             <div
               style={{
-                width: '2rem',
-                height: '2rem',
+                width: '1.875rem',
+                height: '1.875rem',
                 borderRadius: '50%',
                 flexShrink: 0,
                 display: 'flex',
@@ -184,12 +184,12 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
                 color: 'var(--accent-income)',
               }}
             >
-              <ArrowDownRight size={15} strokeWidth={2.5} />
+              <ArrowDownRight size={14} strokeWidth={2.5} />
             </div>
 
-            <div style={{ minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ minWidth: 0, overflow: 'hidden', flex: 1 }}>
               <div style={{
-                fontSize: '0.6rem',
+                fontSize: '0.58rem',
                 fontFamily: 'var(--font-mono)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
@@ -202,7 +202,7 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
               <div
                 className="font-mono-num"
                 style={{
-                  fontSize: '0.8rem',
+                  fontSize: '0.78rem',
                   fontWeight: 700,
                   color: 'var(--accent-income)',
                   whiteSpace: 'nowrap',
@@ -215,27 +215,30 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
               >
                 <span>+</span>
                 <AnimatedNumber value={currentSummary.income} duration={400} />
-                <span style={{ fontSize: '0.65rem' }}>{currencySymbol}</span>
+                <span style={{ fontSize: '0.62rem' }}>{currencySymbol}</span>
               </div>
             </div>
           </div>
 
-          {/* Expense */}
+          {/* Expense Pill — identical symmetric styling, no overflow */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.625rem',
-              padding: '0.75rem',
+              gap: '0.5rem',
+              padding: '0.65rem 0.75rem',
               borderRadius: '16px',
               background: 'var(--accent-expense-dim)',
-              border: '1px solid var(--accent-expense-glow)',
+              border: '1px solid var(--accent-expense-dim)',
+              minWidth: 0,
+              overflow: 'hidden',
+              boxSizing: 'border-box',
             }}
           >
             <div
               style={{
-                width: '2rem',
-                height: '2rem',
+                width: '1.875rem',
+                height: '1.875rem',
                 borderRadius: '50%',
                 flexShrink: 0,
                 display: 'flex',
@@ -245,12 +248,12 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
                 color: 'var(--accent-expense)',
               }}
             >
-              <ArrowUpRight size={15} strokeWidth={2.5} />
+              <ArrowUpRight size={14} strokeWidth={2.5} />
             </div>
 
-            <div style={{ minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ minWidth: 0, overflow: 'hidden', flex: 1 }}>
               <div style={{
-                fontSize: '0.6rem',
+                fontSize: '0.58rem',
                 fontFamily: 'var(--font-mono)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
@@ -263,7 +266,7 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
               <div
                 className="font-mono-num"
                 style={{
-                  fontSize: '0.8rem',
+                  fontSize: '0.78rem',
                   fontWeight: 700,
                   color: 'var(--accent-expense)',
                   whiteSpace: 'nowrap',
@@ -276,7 +279,7 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
               >
                 <span>−</span>
                 <AnimatedNumber value={currentSummary.expense} duration={400} />
-                <span style={{ fontSize: '0.65rem' }}>{currencySymbol}</span>
+                <span style={{ fontSize: '0.62rem' }}>{currencySymbol}</span>
               </div>
             </div>
           </div>
