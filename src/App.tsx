@@ -316,8 +316,8 @@ export default function App() {
       {/* Toast Notification */}
       <Toast toast={toast} onDismiss={() => setToast(null)} />
 
-      {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-lg mx-auto px-4 pt-safe pb-nav">
+      {/* Main Content Area with screen transition key */}
+      <main key={activeTab} className="flex-1 w-full max-w-lg mx-auto px-4 pt-safe pb-nav animate-page-switch">
         {activeTab === 'home' && (
           <HomeScreen
             balances={balances}
@@ -351,6 +351,7 @@ export default function App() {
         {activeTab === 'analysis' && (
           <AnalysisScreen
             stats={stats}
+            transactions={allUnifiedTransactions}
             isLoading={isLoadingStats}
             onRefresh={() => {
               setIsLoadingStats(true);
@@ -374,7 +375,7 @@ export default function App() {
         onConfirm={handleConfirmDelete}
       />
 
-      {/* Bottom Navigation with 3 icons (Calendar, Home, Analysis) */}
+      {/* Bottom Navigation */}
       <BottomNav activeTab={activeTab} onChangeTab={setActiveTab} />
     </div>
   );

@@ -1,7 +1,8 @@
 import React from 'react';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { BalanceSummary } from '../types';
-import { formatJustNumber, getCurrencySymbol } from '../utils/formatters';
+import { getCurrencySymbol, formatJustNumber } from '../utils/formatters';
+import { AnimatedNumber } from './AnimatedNumber';
 
 interface BalanceHeroProps {
   balances: BalanceSummary[];
@@ -10,19 +11,11 @@ interface BalanceHeroProps {
 }
 
 /** Scales font-size down if formatted number is long. */
-function balanceFontSize(value: string | number): string {
-  const len = String(value).replace(/[\s,]/g, '').length;
+function balanceFontSize(value: number): string {
+  const len = String(Math.abs(Math.round(value))).length;
   if (len <= 7) return 'clamp(2rem, 8vw, 2.5rem)';
   if (len <= 10) return 'clamp(1.5rem, 6.5vw, 2rem)';
   return 'clamp(1.1rem, 5vw, 1.5rem)';
-}
-
-/** Scales font-size down for shorter income/expense number+symbol strings. */
-function pillAmountFontSize(value: string): string {
-  const len = value.replace(/[\s,]/g, '').length;
-  if (len <= 9)  return '0.8rem';
-  if (len <= 13) return '0.7rem';
-  return '0.62rem';
 }
 
 export const BalanceHero: React.FC<BalanceHeroProps> = ({
@@ -36,10 +29,6 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
 
   const currencySymbol = getCurrencySymbol(currentSummary.currency);
   const isPositive = currentSummary.balance >= 0;
-
-  const formattedBalance  = formatJustNumber(currentSummary.balance);
-  const formattedIncome   = `+${formatJustNumber(currentSummary.income)} ${currencySymbol}`;
-  const formattedExpense  = `−${formatJustNumber(currentSummary.expense)} ${currencySymbol}`;
 
   const triggerHaptic = () => {
     try {
@@ -67,7 +56,7 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
                   fontWeight: 700,
                   letterSpacing: '0.04em',
                   cursor: 'pointer',
-                  transition: 'all 0.15s',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                   background: isActive ? 'var(--text-primary)' : 'var(--bg-elevated)',
                   color: isActive ? 'var(--bg-page)' : 'var(--text-secondary)',
                   border: `1px solid ${isActive ? 'transparent' : 'var(--border-secondary)'}`,
@@ -100,6 +89,7 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
                 boxShadow: isPositive
                   ? '0 0 6px var(--accent-income-glow)'
                   : '0 0 6px var(--accent-expense-glow)',
+                transition: 'background-color 0.3s ease',
               }}
             />
             <span style={{
@@ -130,21 +120,21 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
           </div>
         </div>
 
-        {/* Balance number — auto-scales */}
+        {/* Balance number — animated counter */}
         <div style={{ margin: '0.5rem 0 1.25rem' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '0.35rem 0.5rem' }}>
-            <span
+            <AnimatedNumber
+              value={currentSummary.balance}
+              duration={400}
               className="font-mono-num"
               style={{
                 fontWeight: 800,
-                fontSize: balanceFontSize(formattedBalance),
+                fontSize: balanceFontSize(currentSummary.balance),
                 lineHeight: 1.1,
                 color: 'var(--text-primary)',
                 userSelect: 'text',
               }}
-            >
-              {formattedBalance}
-            </span>
+            />
             <span
               className="font-display"
               style={{
@@ -211,17 +201,21 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
               </div>
               <div
                 className="font-mono-num"
-                title={formattedIncome}
                 style={{
-                  fontSize: pillAmountFontSize(formattedIncome),
+                  fontSize: '0.8rem',
                   fontWeight: 700,
                   color: 'var(--accent-income)',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '2px',
                 }}
               >
-                {formattedIncome}
+                <span>+</span>
+                <AnimatedNumber value={currentSummary.income} duration={400} />
+                <span style={{ fontSize: '0.65rem' }}>{currencySymbol}</span>
               </div>
             </div>
           </div>
@@ -268,17 +262,21 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
               </div>
               <div
                 className="font-mono-num"
-                title={formattedExpense}
                 style={{
-                  fontSize: pillAmountFontSize(formattedExpense),
+                  fontSize: '0.8rem',
                   fontWeight: 700,
                   color: 'var(--accent-expense)',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '2px',
                 }}
               >
-                {formattedExpense}
+                <span>−</span>
+                <AnimatedNumber value={currentSummary.expense} duration={400} />
+                <span style={{ fontSize: '0.65rem' }}>{currencySymbol}</span>
               </div>
             </div>
           </div>

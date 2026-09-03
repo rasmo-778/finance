@@ -1,21 +1,31 @@
 import React, { useState, useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { ArrowUpRight, ArrowDownRight, RefreshCw, Loader2, PieChart as PieIcon, X } from 'lucide-react';
-import { StatItem } from '../types';
+import { ArrowUpRight, ArrowDownRight, RefreshCw, Loader2, PieChart as PieIcon, X, Calendar as CalendarIcon } from 'lucide-react';
+import { StatItem, Transaction } from '../types';
 import {
-  formatAmount,
-  formatJustNumber,
   getCategoryMeta,
   getCurrencySymbol,
+  parseDateSafe,
 } from '../utils/formatters';
+import { AnimatedNumber } from './AnimatedNumber';
 
 interface AnalysisScreenProps {
   stats: StatItem[];
+  transactions?: Transaction[];
   isLoading: boolean;
   onRefresh: () => void;
 }
 
-// Shared button style helper
+type PeriodTabKey = 'today' | 'week' | 'month' | 'all';
+
+const PERIOD_TABS: { id: PeriodTabKey; label: string }[] = [
+  { id: 'today', label: 'Сегодня' },
+  { id: 'week',  label: '7 дней'  },
+  { id: 'month', label: 'Месяц'   },
+  { id: 'all',   label: 'Всё время' },
+];
+
+// Shared button style helper with smooth transition
 const tabBtnStyle = (isActive: boolean, activeColor: string): React.CSSProperties => ({
   flex: 1,
   display: 'flex',
@@ -28,18 +38,22 @@ const tabBtnStyle = (isActive: boolean, activeColor: string): React.CSSPropertie
   fontWeight: 700,
   fontFamily: 'var(--font-display)',
   cursor: 'pointer',
-  transition: 'all 0.15s',
-  border: isActive ? `1px solid ${activeColor}22` : '1px solid transparent',
+  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+  border: isActive ? `1px solid ${activeColor}33` : '1px solid transparent',
   background: isActive ? 'var(--bg-elevated)' : 'transparent',
   color: isActive ? activeColor : 'var(--text-muted)',
   opacity: isActive ? 1 : 0.7,
+  boxShadow: isActive ? `0 2px 8px -2px ${activeColor}22` : 'none',
 });
 
 export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
   stats,
+  transactions = [],
   isLoading,
   onRefresh,
 }) => {
+  // PROBLEM 3: Default period MUST be "Сегодня" ('today')
+  const [activePeriod, setActivePeriod] = useState<PeriodTabKey>('today');
   const [selectedType, setSelectedType] = useState<'expense' | 'income'>('expense');
   const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
 
@@ -49,18 +63,73 @@ export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
     } catch { /* ignore */ }
   };
 
-  // Unique currencies from stats
+  // Unique currencies from stats / transactions
   const availableCurrencies = useMemo(() => {
     const set = new Set<string>();
     stats.forEach((s) => { if (s.currency) set.add(s.currency); });
+    transactions.forEach((t) => { if (t.currency) set.add(t.currency); });
     return Array.from(set);
-  }, [stats]);
+  }, [stats, transactions]);
 
   const [selectedCurrency, setSelectedCurrency] = useState<string>('');
   const activeCurrency = selectedCurrency || availableCurrencies[0] || 'RUB';
 
-  // Filter by currency & type; sort by amount descending
-  const filteredStats = useMemo(() => {
+  // Filter transactions or stats by date period
+  const filteredCategoryData = useMemo(() => {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const todayEnd   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const weekStart  = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0, 0);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    const monthEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    // If transactions are available, aggregate from transactions for precise date period filtering
+    if (transactions.length > 0) {
+      const categoryMap = new Map<string, number>();
+
+      transactions.forEach((tx) => {
+        const txCurrency = (tx.currency || 'RUB').toUpperCase();
+        if (txCurrency !== activeCurrency) return;
+        if (tx.type !== selectedType) return;
+
+        const txDate = parseDateSafe(tx.date);
+        if (!txDate) return;
+
+        // Apply period filter
+        let inPeriod = false;
+        switch (activePeriod) {
+          case 'today':
+            inPeriod = txDate >= todayStart && txDate <= todayEnd;
+            break;
+          case 'week':
+            inPeriod = txDate >= weekStart && txDate <= todayEnd;
+            break;
+          case 'month':
+            inPeriod = txDate >= monthStart && txDate <= monthEnd;
+            break;
+          case 'all':
+            inPeriod = true;
+            break;
+        }
+
+        if (inPeriod) {
+          const cat = tx.category || 'Без категории';
+          const amt = Math.abs(tx.amount);
+          categoryMap.set(cat, (categoryMap.get(cat) || 0) + amt);
+        }
+      });
+
+      return Array.from(categoryMap.entries())
+        .map(([category, total_amount]) => ({
+          category,
+          total_amount,
+          type: selectedType,
+          currency: activeCurrency,
+        }))
+        .sort((a, b) => b.total_amount - a.total_amount);
+    }
+
+    // Fallback if no transactions provided: use stats
     return stats
       .filter((s) => {
         const matchCurrency = !s.currency || s.currency === activeCurrency;
@@ -70,16 +139,16 @@ export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
       })
       .map((s) => ({ ...s, total_amount: Math.abs(s.total_amount) }))
       .sort((a, b) => b.total_amount - a.total_amount);
-  }, [stats, activeCurrency, selectedType]);
+  }, [transactions, stats, activeCurrency, selectedType, activePeriod]);
 
   const totalPeriodAmount = useMemo(
-    () => filteredStats.reduce((acc, curr) => acc + curr.total_amount, 0),
-    [filteredStats],
+    () => filteredCategoryData.reduce((acc, curr) => acc + curr.total_amount, 0),
+    [filteredCategoryData],
   );
 
   // Chart data — color is sourced from getCategoryMeta so it is consistent with the list
   const chartData = useMemo(() => {
-    return filteredStats.map((item) => {
+    return filteredCategoryData.map((item) => {
       const meta = getCategoryMeta(item.category, selectedType);
       const percentage = totalPeriodAmount > 0 ? (item.total_amount / totalPeriodAmount) * 100 : 0;
       return {
@@ -90,7 +159,7 @@ export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
         meta,
       };
     });
-  }, [filteredStats, totalPeriodAmount, selectedType]);
+  }, [filteredCategoryData, totalPeriodAmount, selectedType]);
 
   // Selected item object (if user tapped a segment or list row)
   const selectedChartItem = useMemo(() => {
@@ -106,7 +175,7 @@ export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
   };
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-4 animate-page-switch">
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.25rem' }}>
         <div>
@@ -143,7 +212,49 @@ export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
         </button>
       </div>
 
-      {/* Currency switcher */}
+      {/* Period filter tabs — DEFAULT IS "Сегодня" */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '0.25rem',
+          padding: '0.25rem',
+          borderRadius: '14px',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-card)',
+        }}
+      >
+        {PERIOD_TABS.map((tab) => {
+          const isActive = activePeriod === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => {
+                triggerHaptic();
+                setActivePeriod(tab.id);
+                setSelectedCategoryName(null);
+              }}
+              style={{
+                padding: '0.45rem 0.2rem',
+                borderRadius: '10px',
+                fontSize: '0.7rem',
+                fontWeight: isActive ? 700 : 600,
+                fontFamily: 'var(--font-display)',
+                cursor: 'pointer',
+                border: isActive ? '1px solid var(--border-secondary)' : '1px solid transparent',
+                background: isActive ? 'var(--bg-elevated)' : 'transparent',
+                color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Currency switcher (if multiple available) */}
       {availableCurrencies.length > 1 && (
         <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
           {availableCurrencies.map((cur) => {
@@ -164,7 +275,7 @@ export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
                   fontFamily: 'var(--font-mono)',
                   fontWeight: 700,
                   cursor: 'pointer',
-                  transition: 'all 0.15s',
+                  transition: 'all 0.2s ease',
                   background: isSelected ? 'var(--text-primary)' : 'var(--bg-elevated)',
                   color: isSelected ? 'var(--bg-page)' : 'var(--text-secondary)',
                   border: `1px solid ${isSelected ? 'transparent' : 'var(--border-secondary)'}`,
@@ -244,17 +355,17 @@ export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
               className="font-display"
               style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}
             >
-              Нет данных по {selectedType === 'expense' ? 'расходам' : 'доходам'}
+              Нет данных по {selectedType === 'expense' ? 'расходам' : 'доходам'} за {PERIOD_TABS.find(p => p.id === activePeriod)?.label.toLowerCase()}
             </div>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', maxWidth: '20rem', lineHeight: 1.5 }}>
-              Для валюты {activeCurrency} пока нет записанных данных по категориям.
+              Выберите другой период выше или добавьте операции.
             </p>
           </div>
         ) : (
           <div>
-            {/* Donut with centered total (never covered by floating tooltips) */}
+            {/* Donut with centered animated total number */}
             <div style={{ position: 'relative', height: '14rem', width: '100%' }}>
-              {/* Center label */}
+              {/* Center label with animated counter */}
               <div
                 style={{
                   position: 'absolute', inset: 0,
@@ -268,7 +379,8 @@ export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
                 <span style={{ fontSize: '0.6rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, color: 'var(--text-muted)' }}>
                   {selectedChartItem ? selectedChartItem.name : 'ВСЕГО'}
                 </span>
-                <span
+
+                <div
                   className="font-mono-num"
                   style={{
                     fontWeight: 800,
@@ -277,10 +389,19 @@ export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
                     letterSpacing: '-0.025em',
                     marginTop: '2px',
                     lineHeight: 1.2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '1px',
                   }}
                 >
-                  {selectedType === 'expense' ? '−' : '+'}{formatJustNumber(selectedChartItem ? selectedChartItem.value : totalPeriodAmount)}
-                </span>
+                  <span>{selectedType === 'expense' ? '−' : '+'}</span>
+                  <AnimatedNumber
+                    value={selectedChartItem ? selectedChartItem.value : totalPeriodAmount}
+                    duration={400}
+                  />
+                </div>
+
                 <span style={{ fontSize: '0.7rem', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', fontWeight: 600, marginTop: '1px' }}>
                   {selectedChartItem ? `${selectedChartItem.percentage}% от суммы` : activeCurrency}
                 </span>
@@ -288,7 +409,6 @@ export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
 
               <ResponsiveContainer width="100%" height="100%" style={{ position: 'relative', zIndex: 10 }}>
                 <PieChart>
-                  {/* Floating tooltip removed to avoid obscuring center text! Tapping a segment highlights it clean in the center and in the list */}
                   <Pie
                     data={chartData}
                     cx="50%"
@@ -312,7 +432,7 @@ export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
                           strokeWidth={isSelected ? 2 : 0}
                           style={{
                             outline: 'none',
-                            transition: 'all 0.2s ease',
+                            transition: 'all 0.25s ease',
                             opacity: selectedCategoryName && !isSelected ? 0.45 : 1,
                           }}
                         />
@@ -349,7 +469,7 @@ export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
                   />
                   <span
                     className="font-display"
-                    style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', truncate: true }}
+                    style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}
                   >
                     Выбрано: {selectedChartItem.name} ({selectedChartItem.percentage}%)
                   </span>
@@ -401,7 +521,7 @@ export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
                       borderRadius: '999px',
                       padding: '0.15rem 0.5rem',
                       cursor: 'pointer',
-                      transition: 'all 0.15s',
+                      transition: 'all 0.2s ease',
                       opacity: selectedCategoryName && !isSelected ? 0.5 : 1,
                     }}
                   >
@@ -515,10 +635,11 @@ export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
                       <div
                         className="font-mono-num"
-                        style={{ fontWeight: 700, fontSize: '0.875rem', color: item.color }}
+                        style={{ fontWeight: 700, fontSize: '0.875rem', color: item.color, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '2px' }}
                       >
-                        {selectedType === 'expense' ? '− ' : '+ '}
-                        {formatAmount(item.value, activeCurrency)}
+                        <span>{selectedType === 'expense' ? '−' : '+'}</span>
+                        <AnimatedNumber value={item.value} duration={400} />
+                        <span style={{ fontSize: '0.7rem', marginLeft: '2px' }}>{activeCurrency}</span>
                       </div>
                       <div
                         style={{ fontSize: '0.65rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: item.color, opacity: 0.75 }}

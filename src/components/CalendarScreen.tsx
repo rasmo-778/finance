@@ -3,6 +3,7 @@ import { Clock, Inbox, Loader2, ArrowUpRight, ArrowDownRight, RefreshCw } from '
 import { Transaction } from '../types';
 import { TransactionItem } from './TransactionItem';
 import { formatAmount, parseDateSafe, toLocalISODate } from '../utils/formatters';
+import { AnimatedNumber } from './AnimatedNumber';
 
 interface CalendarScreenProps {
   transactions: Transaction[];
@@ -39,7 +40,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
   onRefresh,
   onDeleteRequest,
 }) => {
-  const [activeTab, setActiveTab] = useState<TabKey>('month');
+  const [activeTab, setActiveTab] = useState<TabKey>('today');
   const [filterType, setFilterType] = useState<FilterType>('all');
 
   const triggerHaptic = () => {
@@ -127,7 +128,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
   }, [filteredTransactions]);
 
   return (
-    <div className="space-y-4 animate-fade-in">
+    <div className="space-y-4 animate-page-switch">
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.25rem' }}>
         <div>
@@ -213,10 +214,12 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
                   </div>
                   <div
                     className="font-mono-num"
-                    style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-expense)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                    style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-expense)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: '2px' }}
                     title={`−${formatAmount(total.expense, total.currency)}`}
                   >
-                    −{formatAmount(total.expense, total.currency)}
+                    <span>−</span>
+                    <AnimatedNumber value={total.expense} duration={400} />
+                    <span style={{ fontSize: '0.65rem' }}>{total.currency}</span>
                   </div>
                 </div>
               </div>
@@ -244,10 +247,12 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
                   </div>
                   <div
                     className="font-mono-num"
-                    style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-income)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                    style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-income)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: '2px' }}
                     title={`+${formatAmount(total.income, total.currency)}`}
                   >
-                    +{formatAmount(total.income, total.currency)}
+                    <span>+</span>
+                    <AnimatedNumber value={total.income} duration={400} />
+                    <span style={{ fontSize: '0.65rem' }}>{total.currency}</span>
                   </div>
                 </div>
               </div>
@@ -290,7 +295,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
                   border: isActive ? '1px solid var(--border-secondary)' : '1px solid transparent',
                   background: isActive ? 'var(--bg-card)' : 'transparent',
                   color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
-                  transition: 'all 0.15s',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 }}
               >
                 {item.label}
@@ -385,7 +390,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
                   border: isSelected ? '1px solid var(--border-secondary)' : '1px solid transparent',
                   background: isSelected ? 'var(--bg-elevated)' : 'transparent',
                   color: isSelected ? 'var(--text-primary)' : 'var(--text-muted)',
-                  transition: 'all 0.15s',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 }}
               >
                 {f.label}
