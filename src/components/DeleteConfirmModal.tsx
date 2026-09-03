@@ -39,7 +39,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
       <div
         id="delete-confirm-modal"
         className="card animate-bounce-in"
-        style={{ width: '100%', maxWidth: '22rem', padding: '1.5rem' }}
+        style={{ width: '100%', maxWidth: 'min(22rem, calc(100vw - 2rem))', padding: '1.5rem' }}
       >
         {/* Header row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>

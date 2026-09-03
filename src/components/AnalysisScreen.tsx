@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { ArrowUpRight, ArrowDownRight, RefreshCw, Loader2, PieChart as PieIcon } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { ArrowUpRight, ArrowDownRight, RefreshCw, Loader2, PieChart as PieIcon, X } from 'lucide-react';
 import { StatItem } from '../types';
 import {
   formatAmount,
@@ -41,6 +41,7 @@ export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
   onRefresh,
 }) => {
   const [selectedType, setSelectedType] = useState<'expense' | 'income'>('expense');
+  const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
 
   const triggerHaptic = () => {
     try {
@@ -91,41 +92,17 @@ export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
     });
   }, [filteredStats, totalPeriodAmount, selectedType]);
 
+  // Selected item object (if user tapped a segment or list row)
+  const selectedChartItem = useMemo(() => {
+    if (!selectedCategoryName) return null;
+    return chartData.find((item) => item.name === selectedCategoryName) || null;
+  }, [chartData, selectedCategoryName]);
+
   const typeColor = selectedType === 'expense' ? 'var(--accent-expense)' : 'var(--accent-income)';
 
-  // Recharts custom tooltip
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (!active || !payload?.length) return null;
-    const data = payload[0].payload;
-    return (
-      <div
-        style={{
-          padding: '0.75rem',
-          borderRadius: '16px',
-          border: '1px solid var(--border-secondary)',
-          background: 'var(--bg-card)',
-          boxShadow: '0 8px 24px -8px rgba(0,0,0,0.5)',
-          backdropFilter: 'blur(12px)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '4px' }}>
-          <span style={{ display: 'block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: data.color }} />
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
-            {data.name}
-          </span>
-        </div>
-        <div
-          className="font-mono-num"
-          style={{ fontSize: '0.8rem', fontWeight: 700, color: data.color }}
-        >
-          {selectedType === 'expense' ? '− ' : '+ '}
-          {formatAmount(data.value, activeCurrency)}
-        </div>
-        <div style={{ fontSize: '0.65rem', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', marginTop: '1px' }}>
-          {data.percentage}% от суммы
-        </div>
-      </div>
-    );
+  const handleCategoryClick = (categoryName: string) => {
+    triggerHaptic();
+    setSelectedCategoryName((prev) => (prev === categoryName ? null : categoryName));
   };
 
   return (
@@ -175,7 +152,11 @@ export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
               <button
                 key={cur}
                 type="button"
-                onClick={() => { triggerHaptic(); setSelectedCurrency(cur); }}
+                onClick={() => {
+                  triggerHaptic();
+                  setSelectedCurrency(cur);
+                  setSelectedCategoryName(null);
+                }}
                 style={{
                   padding: '0.35rem 0.85rem',
                   borderRadius: '999px',
@@ -211,7 +192,11 @@ export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
       >
         <button
           type="button"
-          onClick={() => { triggerHaptic(); setSelectedType('expense'); }}
+          onClick={() => {
+            triggerHaptic();
+            setSelectedType('expense');
+            setSelectedCategoryName(null);
+          }}
           style={tabBtnStyle(selectedType === 'expense', 'var(--accent-expense)')}
         >
           <ArrowUpRight size={15} strokeWidth={2} />
@@ -219,7 +204,11 @@ export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
         </button>
         <button
           type="button"
-          onClick={() => { triggerHaptic(); setSelectedType('income'); }}
+          onClick={() => {
+            triggerHaptic();
+            setSelectedType('income');
+            setSelectedCategoryName(null);
+          }}
           style={tabBtnStyle(selectedType === 'income', 'var(--accent-income)')}
         >
           <ArrowDownRight size={15} strokeWidth={2} />
@@ -263,7 +252,7 @@ export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
           </div>
         ) : (
           <div>
-            {/* Donut with centered total */}
+            {/* Donut with centered total (never covered by floating tooltips) */}
             <div style={{ position: 'relative', height: '14rem', width: '100%' }}>
               {/* Center label */}
               <div
@@ -272,43 +261,118 @@ export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
                   display: 'flex', flexDirection: 'column',
                   alignItems: 'center', justifyContent: 'center',
                   pointerEvents: 'none', zIndex: 0,
+                  padding: '0 2rem',
+                  textAlign: 'center',
                 }}
               >
                 <span style={{ fontSize: '0.6rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, color: 'var(--text-muted)' }}>
-                  ВСЕГО
+                  {selectedChartItem ? selectedChartItem.name : 'ВСЕГО'}
                 </span>
                 <span
                   className="font-mono-num"
-                  style={{ fontWeight: 800, fontSize: 'clamp(1rem, 4vw, 1.25rem)', color: typeColor, letterSpacing: '-0.025em', marginTop: '2px' }}
+                  style={{
+                    fontWeight: 800,
+                    fontSize: 'clamp(1rem, 4vw, 1.25rem)',
+                    color: selectedChartItem ? selectedChartItem.color : typeColor,
+                    letterSpacing: '-0.025em',
+                    marginTop: '2px',
+                    lineHeight: 1.2,
+                  }}
                 >
-                  {selectedType === 'expense' ? '−' : '+'}{formatJustNumber(totalPeriodAmount)}
+                  {selectedType === 'expense' ? '−' : '+'}{formatJustNumber(selectedChartItem ? selectedChartItem.value : totalPeriodAmount)}
                 </span>
-                <span style={{ fontSize: '0.7rem', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                  {activeCurrency}
+                <span style={{ fontSize: '0.7rem', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', fontWeight: 600, marginTop: '1px' }}>
+                  {selectedChartItem ? `${selectedChartItem.percentage}% от суммы` : activeCurrency}
                 </span>
               </div>
 
               <ResponsiveContainer width="100%" height="100%" style={{ position: 'relative', zIndex: 10 }}>
                 <PieChart>
-                  <Tooltip content={<CustomTooltip />} />
+                  {/* Floating tooltip removed to avoid obscuring center text! Tapping a segment highlights it clean in the center and in the list */}
                   <Pie
                     data={chartData}
                     cx="50%"
                     cy="50%"
                     innerRadius={68}
-                    outerRadius={90}
+                    outerRadius={88}
                     paddingAngle={3}
                     dataKey="value"
                     stroke="transparent"
                     strokeWidth={0}
+                    onClick={(entry) => handleCategoryClick(String(entry.name))}
+                    style={{ cursor: 'pointer', outline: 'none' }}
                   >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
+                    {chartData.map((entry) => {
+                      const isSelected = selectedCategoryName === entry.name;
+                      return (
+                        <Cell
+                          key={entry.name}
+                          fill={entry.color}
+                          stroke={isSelected ? 'var(--text-primary)' : 'transparent'}
+                          strokeWidth={isSelected ? 2 : 0}
+                          style={{
+                            outline: 'none',
+                            transition: 'all 0.2s ease',
+                            opacity: selectedCategoryName && !isSelected ? 0.45 : 1,
+                          }}
+                        />
+                      );
+                    })}
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
             </div>
+
+            {/* Selected Category Banner (if a segment is tapped) */}
+            {selectedChartItem && (
+              <div
+                className="animate-fade-in"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '12px',
+                  background: 'var(--bg-elevated)',
+                  border: `1px solid ${selectedChartItem.color}44`,
+                  marginTop: '0.5rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                  <span
+                    style={{
+                      width: '8px', height: '8px',
+                      borderRadius: '50%',
+                      backgroundColor: selectedChartItem.color,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span
+                    className="font-display"
+                    style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', truncate: true }}
+                  >
+                    Выбрано: {selectedChartItem.name} ({selectedChartItem.percentage}%)
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategoryName(null)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    padding: '2px',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                  title="Сбросить выбор"
+                  aria-label="Сбросить выбор"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
 
             {/* Compact color legend strip */}
             <div
@@ -321,32 +385,49 @@ export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
                 borderTop: '1px solid var(--border-subtle)',
               }}
             >
-              {chartData.map((item) => (
-                <div
-                  key={item.name}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}
-                >
-                  <span
+              {chartData.map((item) => {
+                const isSelected = selectedCategoryName === item.name;
+                return (
+                  <button
+                    key={item.name}
+                    type="button"
+                    onClick={() => handleCategoryClick(item.name)}
                     style={{
-                      display: 'inline-block',
-                      width: '8px', height: '8px',
-                      borderRadius: '50%',
-                      backgroundColor: item.color,
-                      flexShrink: 0,
-                    }}
-                  />
-                  <span
-                    style={{
-                      fontSize: '0.65rem',
-                      fontFamily: 'var(--font-mono)',
-                      color: 'var(--text-secondary)',
-                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      background: isSelected ? 'var(--bg-elevated)' : 'transparent',
+                      border: `1px solid ${isSelected ? item.color : 'transparent'}`,
+                      borderRadius: '999px',
+                      padding: '0.15rem 0.5rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                      opacity: selectedCategoryName && !isSelected ? 0.5 : 1,
                     }}
                   >
-                    {item.name}
-                  </span>
-                </div>
-              ))}
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        width: '7px', height: '7px',
+                        borderRadius: '50%',
+                        backgroundColor: item.color,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span
+                      style={{
+                        fontSize: '0.65rem',
+                        fontFamily: 'var(--font-mono)',
+                        color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
+                        fontWeight: isSelected ? 700 : 500,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {item.name}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -369,11 +450,21 @@ export const AnalysisScreen: React.FC<AnalysisScreenProps> = ({
           <div className="space-y-2">
             {chartData.map((item) => {
               const CategoryIcon = item.meta.icon;
+              const isSelected = selectedCategoryName === item.name;
+
               return (
                 <div
                   key={item.name}
                   className="card"
-                  style={{ padding: '0.875rem 1rem' }}
+                  onClick={() => handleCategoryClick(item.name)}
+                  style={{
+                    padding: '0.875rem 1rem',
+                    cursor: 'pointer',
+                    border: `1px solid ${isSelected ? item.color : 'var(--border-card)'}`,
+                    boxShadow: isSelected ? `0 0 12px ${item.color}33` : 'var(--shadow-card)',
+                    transition: 'all 0.2s ease',
+                    opacity: selectedCategoryName && !isSelected ? 0.6 : 1,
+                  }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.625rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>

@@ -89,6 +89,10 @@
 }
 
 /* ─────────── Base reset ─────────────────────────────────────── */
+*, *::before, *::after {
+  -webkit-tap-highlight-color: transparent;
+}
+
 html, body {
   font-family: var(--font-body);
   background-color: var(--bg-page);
@@ -100,6 +104,32 @@ html, body {
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
   overflow-x: hidden;
+}
+
+/* Disable ugly browser outline rings & tap highlights on SVGs and Recharts elements */
+svg, svg *, .recharts-surface, .recharts-wrapper, .recharts-layer, .recharts-sector, .recharts-pie, .recharts-pie-sector {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+svg:focus, svg *:focus, svg:active, svg *:active,
+.recharts-wrapper:focus, .recharts-surface:focus, .recharts-pie-sector:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Button & Input outline control */
+button, input, select, textarea, a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus, button:active, input:focus, input:active {
+  outline: none;
+}
+
+button:focus-visible, input:focus-visible {
+  outline: 2px solid var(--accent-brand);
+  outline-offset: 2px;
 }
 
 /* ─────────── Typography helpers ────────────────────────────── */
@@ -118,9 +148,11 @@ html, body {
   padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
 }
 
-/* Top safe-area for Telegram header */
+/* Top safe-area for Telegram header — ensures content is never clipped under Telegram top bar buttons */
 .pt-safe {
-  padding-top: max(0.75rem, env(safe-area-inset-top, 0.75rem));
+  padding-top: max(4.5rem, calc(3.5rem + var(--tg-content-safe-area-inset-top, var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)))));
+  padding-left: max(1rem, env(safe-area-inset-left, 1rem));
+  padding-right: max(1rem, env(safe-area-inset-right, 1rem));
 }
 
 /* ─────────── Card helpers ──────────────────────────────────── */
