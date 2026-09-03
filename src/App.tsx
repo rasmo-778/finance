@@ -51,8 +51,8 @@ export default function App() {
       if (tg) {
         tg.ready();
         tg.expand();
-        tg.setHeaderColor?.('#0E1117');
-        tg.setBackgroundColor?.('#0E1117');
+        tg.setHeaderColor?.('#151519');
+        tg.setBackgroundColor?.('#151519');
         if (tg.initData) {
           setInitData(tg.initData);
         }
@@ -252,21 +252,58 @@ export default function App() {
   // If app is opened in a standard browser outside Telegram (no Telegram.WebApp.initData)
   if (isTelegramReady && !initData) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12 bg-[#0E1117] text-white">
-        <div className="w-full max-w-sm rounded-[24px] p-8 border border-[#222734] bg-[#161A23] shadow-2xl text-center flex flex-col items-center space-y-4">
-          <div className="w-16 h-16 rounded-2xl bg-[#1E2330] border border-[#2A3142] flex items-center justify-center text-[#24A1DE] shadow-inner">
-            <Send size={28} className="translate-x-[-1px] translate-y-[1px]" />
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1.5rem',
+          backgroundColor: 'var(--bg-page)',
+          color: 'var(--text-primary)',
+        }}
+      >
+        <div
+          className="card"
+          style={{
+            width: '100%',
+            maxWidth: '22rem',
+            padding: '2rem',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1rem',
+          }}
+        >
+          <div
+            style={{
+              width: '4rem', height: '4rem',
+              borderRadius: '16px',
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border-secondary)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#29A8E8',
+            }}
+          >
+            <Send size={26} />
           </div>
           <div>
-            <h1 className="text-lg font-bold font-display tracking-tight text-white mb-1.5">
+            <h1
+              className="font-display"
+              style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-primary)', marginBottom: '0.375rem', letterSpacing: '-0.02em' }}
+            >
               Telegram WebApp
             </h1>
-            <p className="text-xs leading-relaxed text-[#8A94A6]">
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
               Откройте это приложение через Telegram
             </p>
           </div>
-          <div className="pt-2 flex items-center justify-center gap-2 text-[11px] font-mono text-[#5A6478]">
-            <Smartphone size={13} />
+          <div
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}
+          >
+            <Smartphone size={12} />
             <span>Требуется запуск внутри Telegram бота</span>
           </div>
         </div>

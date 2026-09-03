@@ -157,8 +157,8 @@ export function getCategoryMeta(categoryName: string = '', type: string = 'expen
   if (type === 'income' || cat.includes('зарплат') || cat.includes('доход') || cat.includes('перевод')) {
     return {
       icon: Wallet,
-      color: '#10b981',
-      bgColor: 'rgba(16, 185, 129, 0.14)',
+      color: '#4ECBA0',       // matches --accent-income
+      bgColor: 'rgba(78,203,160,0.13)',
     };
   }
 
@@ -258,14 +258,14 @@ export function getCategoryMeta(categoryName: string = '', type: string = 'expen
 }
 
 export const CHART_PALETTE = [
-  '#00E676', // Bright Mint Green
-  '#38BDF8', // Sky Blue
-  '#818CF8', // Indigo Slate
-  '#FF5252', // Soft Coral Red
-  '#FB923C', // Tangerine
-  '#A78BFA', // Lavender
-  '#F472B6', // Pastel Pink
-  '#FBBF24', // Amber
-  '#2DD4BF', // Teal
-  '#A3E635', // Lime
+  '#4ECBA0',  // Muted emerald (income)
+  '#7C7CF8',  // Soft indigo
+  '#E07B6A',  // Muted terracotta (expense)
+  '#5BA8E0',  // Steel blue
+  '#D4A05A',  // Warm amber
+  '#A87CF8',  // Lavender
+  '#E87CA8',  // Dusty rose
+  '#56C2B8',  // Muted teal
+  '#A3B560',  // Sage green
+  '#E8976A',  // Burnt sienna
 ];

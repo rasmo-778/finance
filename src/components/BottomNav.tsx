@@ -7,12 +7,16 @@ interface BottomNavProps {
   onChangeTab: (tab: ActiveTab) => void;
 }
 
+const tabs: { id: ActiveTab; label: string; Icon: React.FC<{ size?: number; strokeWidth?: number }> }[] = [
+  { id: 'home',     label: 'Главная',   Icon: Home },
+  { id: 'analysis', label: 'Анализ',    Icon: PieChart },
+  { id: 'calendar', label: 'Календарь', Icon: Calendar },
+];
+
 export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onChangeTab }) => {
   const triggerHaptic = () => {
     try {
-      if (window.Telegram?.WebApp?.HapticFeedback) {
-        window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
-      }
+      window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
     } catch {
       // ignore
     }
@@ -23,57 +27,67 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onChangeTab }) 
     onChangeTab(tab);
   };
 
-  const tabs: { id: ActiveTab; label: string; icon: React.FC<{ size?: number; strokeWidth?: number }> }[] = [
-    { id: 'home', label: 'Главная', icon: Home },
-    { id: 'analysis', label: 'Анализ', icon: PieChart },
-    { id: 'calendar', label: 'Календарь', icon: Calendar },
-  ];
-
   return (
-    <div className="fixed bottom-4 left-0 right-0 z-40 flex justify-center pointer-events-none px-4 pb-[env(safe-area-inset-bottom,0px)]">
-      <nav
-        id="bottom-navigation-bar"
-        className="pointer-events-auto relative flex items-center justify-around p-1.5 rounded-full border nav-dock-glow transition-all"
-        style={{
-          background: 'rgba(22, 26, 35, 0.88)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          borderColor: 'rgba(255, 255, 255, 0.08)',
-          width: 'calc(100% - 32px)',
-          maxWidth: '360px',
-        }}
-      >
-        {tabs.map((tab) => {
-          const isActive = activeTab === tab.id;
-          const Icon = tab.icon;
-
+    <nav
+      id="bottom-navigation-bar"
+      className="nav-bar"
+      aria-label="Основная навигация"
+    >
+      <div className="flex items-center justify-around px-2 pt-3 pb-2">
+        {tabs.map(({ id, label, Icon }) => {
+          const isActive = activeTab === id;
           return (
             <button
-              key={tab.id}
-              id={`nav-tab-${tab.id}`}
+              key={id}
+              id={`nav-tab-${id}`}
               type="button"
-              onClick={() => handleSelect(tab.id)}
-              className={`relative flex items-center justify-center py-3 px-6 rounded-full transition-all duration-200 cursor-pointer ${
-                isActive ? 'scale-100 shadow-md font-bold' : 'hover:opacity-100 opacity-60 active:scale-95'
-              }`}
+              onClick={() => handleSelect(id)}
+              aria-label={label}
+              aria-current={isActive ? 'page' : undefined}
               style={{
-                backgroundColor: isActive ? '#FFFFFF' : 'transparent',
-                color: isActive ? '#0E1117' : '#8A94A6',
+                /* fixed-size square tap zone */
+                width: '3.5rem',
+                height: '3.5rem',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px',
+                borderRadius: '14px',
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                transition: 'opacity 0.15s',
+                WebkitTapHighlightColor: 'transparent',
               }}
-              aria-label={tab.label}
             >
-              <div className="flex items-center gap-2">
-                <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                {isActive && (
-                  <span className="text-xs font-bold font-display tracking-tight whitespace-nowrap">
-                    {tab.label}
-                  </span>
-                )}
-              </div>
+              {/* Active accent dot above icon */}
+              <span
+                style={{
+                  display: 'block',
+                  width: '4px',
+                  height: '4px',
+                  borderRadius: '999px',
+                  backgroundColor: isActive ? 'var(--text-primary)' : 'transparent',
+                  transition: 'background-color 0.15s',
+                  flexShrink: 0,
+                }}
+              />
+
+              {/* Icon */}
+              <Icon
+                size={22}
+                strokeWidth={isActive ? 2 : 1.75}
+                style={{
+                  color: isActive ? 'var(--nav-active-color)' : 'var(--nav-inactive-color)',
+                  transition: 'color 0.15s',
+                  flexShrink: 0,
+                }}
+              />
             </button>
           );
         })}
-      </nav>
-    </div>
+      </div>
+    </nav>
   );
 };

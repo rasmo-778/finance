@@ -9,6 +9,22 @@ interface BalanceHeroProps {
   onSelectCurrency: (currency: string) => void;
 }
 
+/** Scales font-size down if formatted number is long. */
+function balanceFontSize(value: string | number): string {
+  const len = String(value).replace(/[\s,]/g, '').length;
+  if (len <= 7) return 'clamp(2rem, 8vw, 2.5rem)';
+  if (len <= 10) return 'clamp(1.5rem, 6.5vw, 2rem)';
+  return 'clamp(1.1rem, 5vw, 1.5rem)';
+}
+
+/** Scales font-size down for shorter income/expense number+symbol strings. */
+function pillAmountFontSize(value: string): string {
+  const len = value.replace(/[\s,]/g, '').length;
+  if (len <= 9)  return '0.8rem';
+  if (len <= 13) return '0.7rem';
+  return '0.62rem';
+}
+
 export const BalanceHero: React.FC<BalanceHeroProps> = ({
   balances,
   selectedCurrency,
@@ -16,28 +32,24 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
 }) => {
   const currentSummary =
     balances.find((b) => b.currency === selectedCurrency) ||
-    balances[0] || {
-      currency: 'UZS',
-      income: 0,
-      expense: 0,
-      balance: 0,
-      count: 0,
-    };
+    balances[0] || { currency: 'RUB', income: 0, expense: 0, balance: 0, count: 0 };
 
   const currencySymbol = getCurrencySymbol(currentSummary.currency);
   const isPositive = currentSummary.balance >= 0;
 
+  const formattedBalance  = formatJustNumber(currentSummary.balance);
+  const formattedIncome   = `+${formatJustNumber(currentSummary.income)} ${currencySymbol}`;
+  const formattedExpense  = `−${formatJustNumber(currentSummary.expense)} ${currencySymbol}`;
+
   const triggerHaptic = () => {
     try {
       window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
   };
 
   return (
     <div className="space-y-3">
-      {/* Multi-Currency Switcher (if user has transactions in multiple currencies) */}
+      {/* Multi-currency switcher */}
       {balances.length > 1 && (
         <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
           {balances.map((b) => {
@@ -46,15 +58,21 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
               <button
                 key={b.currency}
                 type="button"
-                onClick={() => {
-                  triggerHaptic();
-                  onSelectCurrency(b.currency);
+                onClick={() => { triggerHaptic(); onSelectCurrency(b.currency); }}
+                style={{
+                  padding: '0.35rem 0.85rem',
+                  borderRadius: '999px',
+                  fontSize: '0.7rem',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 700,
+                  letterSpacing: '0.04em',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                  background: isActive ? 'var(--text-primary)' : 'var(--bg-elevated)',
+                  color: isActive ? 'var(--bg-page)' : 'var(--text-secondary)',
+                  border: `1px solid ${isActive ? 'transparent' : 'var(--border-secondary)'}`,
+                  whiteSpace: 'nowrap',
                 }}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-bold tracking-wide transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-white text-[#0E1117] shadow-md scale-105'
-                    : 'bg-[#1E2330] text-[#8A94A6] hover:text-white border border-[#2A3142] active:scale-95'
-                }`}
               >
                 {b.currency} • {getCurrencySymbol(b.currency)}
               </button>
@@ -63,89 +81,204 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
         </div>
       )}
 
-      {/* Main Balance Card */}
+      {/* Main balance card */}
       <div
         id="balance-hero-card"
-        className="relative overflow-hidden rounded-[20px] p-5 sm:p-6 border border-[#222734] bg-[#161A23] card-glow transition-all"
+        className="card"
+        style={{ padding: '1.25rem 1.375rem' }}
       >
-        {/* Card Header: Label & Currency Badge */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
+        {/* Card header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span
-              className="w-2 h-2 rounded-full"
               style={{
-                backgroundColor: isPositive ? '#00E676' : '#FF5252',
+                display: 'inline-block',
+                width: '7px',
+                height: '7px',
+                borderRadius: '50%',
+                backgroundColor: isPositive ? 'var(--accent-income)' : 'var(--accent-expense)',
                 boxShadow: isPositive
-                  ? '0 0 8px rgba(0, 230, 118, 0.4)'
-                  : '0 0 8px rgba(255, 82, 82, 0.4)',
+                  ? '0 0 6px var(--accent-income-glow)'
+                  : '0 0 6px var(--accent-expense-glow)',
               }}
             />
-            <span className="text-[10px] font-mono uppercase tracking-wider font-semibold text-[#8A94A6]">
+            <span style={{
+              fontSize: '0.625rem',
+              fontFamily: 'var(--font-mono)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              fontWeight: 600,
+              color: 'var(--text-secondary)',
+            }}>
               ТЕКУЩИЙ БАЛАНС
             </span>
           </div>
 
-          <div className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold uppercase tracking-wider bg-[#1E2330] text-[#8A94A6] border border-[#2A3142]">
+          <div style={{
+            padding: '0.15rem 0.6rem',
+            borderRadius: '999px',
+            fontSize: '0.65rem',
+            fontFamily: 'var(--font-mono)',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            background: 'var(--bg-elevated)',
+            color: 'var(--text-secondary)',
+            border: '1px solid var(--border-secondary)',
+          }}>
             {currentSummary.currency}
           </div>
         </div>
 
-        {/* Dynamic Font Scaling Balance Number */}
-        <div className="my-2 overflow-hidden">
-          <div className="flex items-baseline flex-wrap gap-x-2 gap-y-0">
+        {/* Balance number — auto-scales */}
+        <div style={{ margin: '0.5rem 0 1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '0.35rem 0.5rem' }}>
             <span
-              className="font-bold font-mono-num tracking-tight text-white select-text"
+              className="font-mono-num"
               style={{
-                fontSize: 'clamp(24px, 7vw, 36px)',
-                lineHeight: 1.15,
+                fontWeight: 800,
+                fontSize: balanceFontSize(formattedBalance),
+                lineHeight: 1.1,
+                color: 'var(--text-primary)',
+                userSelect: 'text',
               }}
             >
-              {formatJustNumber(currentSummary.balance)}
+              {formattedBalance}
             </span>
-            <span className="text-xl sm:text-2xl font-bold font-display text-[#8A94A6]">
+            <span
+              className="font-display"
+              style={{
+                fontWeight: 700,
+                fontSize: '1.1rem',
+                color: 'var(--text-secondary)',
+                lineHeight: 1.2,
+              }}
+            >
               {currencySymbol}
             </span>
           </div>
         </div>
 
-        {/* Income & Expense Quick Action Pills (Two Equal-Width Flex Columns) */}
-        <div className="grid grid-cols-2 gap-3 mt-5 pt-4 border-t border-[#222734]">
-          {/* Income Pill */}
+        {/* Income & Expense pills */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '0.65rem',
+            paddingTop: '1rem',
+            borderTop: '1px solid var(--border-subtle)',
+          }}
+        >
+          {/* Income */}
           <div
-            className="flex items-center gap-2.5 p-3 rounded-[16px] transition-all bg-[rgba(0,230,118,0.12)] border border-[rgba(0,230,118,0.15)]"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.625rem',
+              padding: '0.75rem',
+              borderRadius: '16px',
+              background: 'var(--accent-income-dim)',
+              border: '1px solid var(--accent-income-glow)',
+            }}
           >
-            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-[rgba(0,230,118,0.2)] text-[#00E676]">
-              <ArrowDownRight size={16} strokeWidth={2.5} />
+            <div
+              style={{
+                width: '2rem',
+                height: '2rem',
+                borderRadius: '50%',
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'var(--accent-income-glow)',
+                color: 'var(--accent-income)',
+              }}
+            >
+              <ArrowDownRight size={15} strokeWidth={2.5} />
             </div>
-            <div className="min-w-0">
-              <div className="text-[10px] font-mono uppercase tracking-wider font-medium text-[#8A94A6]">
+
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
+              <div style={{
+                fontSize: '0.6rem',
+                fontFamily: 'var(--font-mono)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                fontWeight: 600,
+                color: 'var(--text-secondary)',
+                marginBottom: '1px',
+              }}>
                 Доходы
               </div>
               <div
-                className="text-xs sm:text-sm font-bold font-mono-num truncate text-[#00E676]"
-                title={`+${formatJustNumber(currentSummary.income)} ${currencySymbol}`}
+                className="font-mono-num"
+                title={formattedIncome}
+                style={{
+                  fontSize: pillAmountFontSize(formattedIncome),
+                  fontWeight: 700,
+                  color: 'var(--accent-income)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
               >
-                +{formatJustNumber(currentSummary.income)} {currencySymbol}
+                {formattedIncome}
               </div>
             </div>
           </div>
 
-          {/* Expense Pill */}
+          {/* Expense */}
           <div
-            className="flex items-center gap-2.5 p-3 rounded-[16px] transition-all bg-[rgba(255,82,82,0.12)] border border-[rgba(255,82,82,0.15)]"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.625rem',
+              padding: '0.75rem',
+              borderRadius: '16px',
+              background: 'var(--accent-expense-dim)',
+              border: '1px solid var(--accent-expense-glow)',
+            }}
           >
-            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-[rgba(255,82,82,0.2)] text-[#FF5252]">
-              <ArrowUpRight size={16} strokeWidth={2.5} />
+            <div
+              style={{
+                width: '2rem',
+                height: '2rem',
+                borderRadius: '50%',
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'var(--accent-expense-glow)',
+                color: 'var(--accent-expense)',
+              }}
+            >
+              <ArrowUpRight size={15} strokeWidth={2.5} />
             </div>
-            <div className="min-w-0">
-              <div className="text-[10px] font-mono uppercase tracking-wider font-medium text-[#8A94A6]">
+
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
+              <div style={{
+                fontSize: '0.6rem',
+                fontFamily: 'var(--font-mono)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                fontWeight: 600,
+                color: 'var(--text-secondary)',
+                marginBottom: '1px',
+              }}>
                 Расходы
               </div>
               <div
-                className="text-xs sm:text-sm font-bold font-mono-num truncate text-[#FF5252]"
-                title={`−${formatJustNumber(currentSummary.expense)} ${currencySymbol}`}
+                className="font-mono-num"
+                title={formattedExpense}
+                style={{
+                  fontSize: pillAmountFontSize(formattedExpense),
+                  fontWeight: 700,
+                  color: 'var(--accent-expense)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
               >
-                −{formatJustNumber(currentSummary.expense)} {currencySymbol}
+                {formattedExpense}
               </div>
             </div>
           </div>

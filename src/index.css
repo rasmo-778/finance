@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 @layer base {
   :root {
@@ -6,45 +7,94 @@
     --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono: 'Space Grotesk', monospace;
 
-    /* Pure Dark Mode Design System Tokens */
-    --bg-page: #0E1117;
-    --bg-card: #161A23;
-    --bg-card-secondary: #1E2330;
-    --bg-elevated: #1E2330;
-    --border-subtle: #222734;
-    --border-secondary: #2A3142;
-    --border-accent: #00E676;
-    
-    --text-primary: #FFFFFF;
-    --text-secondary: #8A94A6;
-    --text-muted: #555F73;
-    
-    /* Accents & Glows */
-    --accent-primary: #FFFFFF;
-    --accent-contrast: #0E1117;
-    --accent-income: #00E676;
-    --accent-income-bg: rgba(0, 230, 118, 0.12);
-    --accent-expense: #FF5252;
-    --accent-expense-bg: rgba(255, 82, 82, 0.12);
-    --accent-brand: #6366F1;
-    --accent-highlight: #3B82F6;
+    /* ── Dark Theme (default) ─────────────────────────────────── */
+    --bg-page:            #151519;
+    --bg-card:            #1E1E25;
+    --bg-card-secondary:  #26262E;
+    --bg-elevated:        #26262E;
+    --bg-input:           #26262E;
 
-    /* Floating Nav Dock */
-    --nav-bg: rgba(22, 26, 35, 0.85);
-    --nav-border: rgba(255, 255, 255, 0.08);
-    --nav-active-pill: #FFFFFF;
-    --nav-active-icon: #0E1117;
-    --nav-inactive-icon: #8A94A6;
+    --border-subtle:      rgba(255,255,255,0.07);
+    --border-card:        rgba(255,255,255,0.06);
+    --border-secondary:   rgba(255,255,255,0.10);
+    --border-accent:      rgba(255,255,255,0.14);
+
+    --text-primary:       #F0EFF4;
+    --text-secondary:     #8B8B99;
+    --text-muted:         #4E4E5A;
+
+    /* Premium muted accents */
+    --accent-income:      #4ECBA0;   /* soft emerald/mint */
+    --accent-income-dim:  rgba(78,203,160,0.13);
+    --accent-income-glow: rgba(78,203,160,0.18);
+    --accent-expense:     #E07B6A;   /* muted terracotta/coral */
+    --accent-expense-dim: rgba(224,123,106,0.13);
+    --accent-expense-glow:rgba(224,123,106,0.18);
+    --accent-brand:       #7C7CF8;   /* soft indigo */
+    --accent-neutral:     #5B5B6E;
+
+    /* Nav */
+    --nav-bg:             rgba(21,21,25,0.92);
+    --nav-border:         rgba(255,255,255,0.08);
+    --nav-active-color:   #F0EFF4;
+    --nav-inactive-color: #4E4E5A;
+
+    /* Radius tokens */
+    --radius-card:        22px;
+    --radius-pill:        999px;
+    --radius-btn:         14px;
+    --radius-icon:        14px;
+
+    /* Shadow */
+    --shadow-card: 0 4px 24px -6px rgba(0,0,0,0.55);
+    --shadow-nav:  0 -1px 0 rgba(255,255,255,0.05), 0 16px 40px -8px rgba(0,0,0,0.6);
+  }
+
+  /* ── Light Theme ──────────────────────────────────────────── */
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg-page:            #F2F1ED;
+      --bg-card:            #FFFFFF;
+      --bg-card-secondary:  #F7F6F2;
+      --bg-elevated:        #EEEDE8;
+      --bg-input:           #EEEDE8;
+
+      --border-subtle:      rgba(0,0,0,0.07);
+      --border-card:        rgba(0,0,0,0.06);
+      --border-secondary:   rgba(0,0,0,0.10);
+      --border-accent:      rgba(0,0,0,0.12);
+
+      --text-primary:       #1A1A22;
+      --text-secondary:     #6B6B78;
+      --text-muted:         #A8A8B3;
+
+      --accent-income:      #2DAD85;
+      --accent-income-dim:  rgba(45,173,133,0.10);
+      --accent-income-glow: rgba(45,173,133,0.15);
+      --accent-expense:     #C85D4C;
+      --accent-expense-dim: rgba(200,93,76,0.10);
+      --accent-expense-glow:rgba(200,93,76,0.15);
+      --accent-brand:       #6363E8;
+      --accent-neutral:     #9898A8;
+
+      --nav-bg:             rgba(242,241,237,0.94);
+      --nav-border:         rgba(0,0,0,0.08);
+      --nav-active-color:   #1A1A22;
+      --nav-inactive-color: #A8A8B3;
+
+      --shadow-card: 0 2px 16px -4px rgba(0,0,0,0.10);
+      --shadow-nav:  0 -1px 0 rgba(0,0,0,0.07), 0 8px 24px -4px rgba(0,0,0,0.08);
+    }
   }
 }
 
+/* ─────────── Base reset ─────────────────────────────────────── */
 html, body {
   font-family: var(--font-body);
   background-color: var(--bg-page);
   color: var(--text-primary);
   min-height: 100vh;
   min-height: 100dvh;
-  min-height: 100svh;
   margin: 0;
   padding: 0;
   -webkit-tap-highlight-color: transparent;
@@ -52,60 +102,98 @@ html, body {
   overflow-x: hidden;
 }
 
-.font-display {
-  font-family: var(--font-display);
-}
+/* ─────────── Typography helpers ────────────────────────────── */
+.font-display { font-family: var(--font-display); }
 
 .font-mono-num {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
 }
 
-/* Custom Safe Area & Nav Bottom Padding */
+/* ─────────── Safe-area & spacing utilities ─────────────────── */
+
+/* Bottom content padding — must clear nav + safe-area */
 .pb-nav {
-  padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 1rem));
+  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
 }
 
+/* Top safe-area for Telegram header */
 .pt-safe {
-  padding-top: max(1rem, env(safe-area-inset-top, 1rem));
+  padding-top: max(0.75rem, env(safe-area-inset-top, 0.75rem));
 }
 
-/* Card Glows */
-.income-glow {
-  box-shadow: 0 0 12px rgba(0, 230, 118, 0.25);
+/* ─────────── Card helpers ──────────────────────────────────── */
+.card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
 
-.expense-glow {
-  box-shadow: 0 0 12px rgba(255, 82, 82, 0.25);
+.card-elevated {
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
 }
 
-.card-glow {
-  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.5);
+/* ─────────── Glow helpers ──────────────────────────────────── */
+.income-glow { box-shadow: 0 0 14px var(--accent-income-glow); }
+.expense-glow { box-shadow: 0 0 14px var(--accent-expense-glow); }
+
+/* ─────────── Bottom Navigation ─────────────────────────────── */
+.nav-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background: var(--nav-bg);
+  border-top: 1px solid var(--nav-border);
+  box-shadow: var(--shadow-nav);
+  /* Critical: opaque backdrop-filter so content scrolling behind doesn't bleed */
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  /* Account for iPhone home-indicator safe area */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-.nav-dock-glow {
-  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.6);
-}
-
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+/* ─────────── Scrollbar ──────────────────────────────────────── */
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--border-subtle);
+  background: var(--border-secondary);
   border-radius: 9999px;
 }
 
-/* Hide scrollbar for tabs */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ─────────── Animations ─────────────────────────────────────── */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+
+@keyframes bounce-in {
+  0%   { opacity: 0; transform: scale(0.9) translateY(-6px); }
+  60%  { transform: scale(1.02) translateY(2px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-fade-in  { animation: fade-in  0.25s ease both; }
+.animate-bounce-in{ animation: bounce-in 0.3s cubic-bezier(0.34,1.56,0.64,1) both; }
+.animate-spin     { animation: spin 1s linear infinite; }
+
+/* ─────────── Date input theming ────────────────────────────── */
+input[type="date"] {
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  input[type="date"] { color-scheme: light; }
 }

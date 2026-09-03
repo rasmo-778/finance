@@ -15,6 +15,20 @@ interface CalendarScreenProps {
 }
 
 type TabKey = 'today' | 'week' | 'month' | 'custom';
+type FilterType = 'all' | 'expense' | 'income';
+
+const PERIOD_TABS: { id: TabKey; label: string }[] = [
+  { id: 'today',  label: 'Сегодня' },
+  { id: 'week',   label: '7 дней'  },
+  { id: 'month',  label: 'Месяц'   },
+  { id: 'custom', label: 'Период'  },
+];
+
+const FILTER_TABS: { id: FilterType; label: string }[] = [
+  { id: 'all',     label: 'Все'     },
+  { id: 'expense', label: 'Расходы' },
+  { id: 'income',  label: 'Доходы'  },
+];
 
 export const CalendarScreen: React.FC<CalendarScreenProps> = ({
   transactions,
@@ -26,14 +40,12 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
   onDeleteRequest,
 }) => {
   const [activeTab, setActiveTab] = useState<TabKey>('month');
-  const [filterType, setFilterType] = useState<'all' | 'expense' | 'income'>('all');
+  const [filterType, setFilterType] = useState<FilterType>('all');
 
   const triggerHaptic = () => {
     try {
       window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
   };
 
   const handleSelectTab = (tab: TabKey) => {
@@ -50,67 +62,60 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
       onChangeDateRange(toLocalISODate(weekAgo), toLocalISODate(now));
     } else if (tab === 'month') {
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      const lastDay  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
       onChangeDateRange(toLocalISODate(firstDay), toLocalISODate(lastDay));
     }
+    // 'custom' — keep current dateFrom/dateTo values
   };
 
-  // Robust client-side filtering by local date & time boundaries
+  // Client-side filtering by date window and type
   const filteredTransactions = useMemo(() => {
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-
-    const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0, 0);
+    const todayEnd   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const weekStart  = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0, 0);
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    const monthEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
+    // Parse custom range once
     let customStart: Date | null = null;
     let customEnd: Date | null = null;
-
     if (dateFrom) {
       const p = dateFrom.split('-');
-      if (p.length === 3) {
-        customStart = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]), 0, 0, 0, 0);
-      }
+      if (p.length === 3) customStart = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]), 0, 0, 0, 0);
     }
     if (dateTo) {
       const p = dateTo.split('-');
-      if (p.length === 3) {
-        customEnd = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]), 23, 59, 59, 999);
-      }
+      if (p.length === 3) customEnd = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]), 23, 59, 59, 999);
     }
 
     return transactions.filter((tx) => {
-      // 1. Filter by transaction type
+      // Type filter
       if (filterType === 'expense' && tx.type !== 'expense') return false;
-      if (filterType === 'income' && tx.type !== 'income') return false;
+      if (filterType === 'income'  && tx.type !== 'income')  return false;
 
-      // 2. Filter by date
+      // Date filter
       const txDate = parseDateSafe(tx.date);
-      if (!txDate) return true; // Keep if unparseable
+      if (!txDate) return true; // keep unparseable
 
-      if (activeTab === 'today') {
-        return txDate >= todayStart && txDate <= todayEnd;
-      } else if (activeTab === 'week') {
-        return txDate >= weekStart && txDate <= todayEnd;
-      } else if (activeTab === 'month') {
-        return txDate >= monthStart && txDate <= monthEnd;
-      } else if (activeTab === 'custom') {
-        if (customStart && txDate < customStart) return false;
-        if (customEnd && txDate > customEnd) return false;
-        return true;
+      switch (activeTab) {
+        case 'today':  return txDate >= todayStart && txDate <= todayEnd;
+        case 'week':   return txDate >= weekStart  && txDate <= todayEnd;
+        case 'month':  return txDate >= monthStart && txDate <= monthEnd;
+        case 'custom':
+          if (customStart && txDate < customStart) return false;
+          if (customEnd   && txDate > customEnd)   return false;
+          return true;
+        default: return true;
       }
-
-      return true;
     });
   }, [transactions, filterType, activeTab, dateFrom, dateTo]);
 
-  // Calculate totals for current view per currency
+  // Period totals grouped by currency
   const periodTotalsByCurrency = useMemo(() => {
     const map = new Map<string, { income: number; expense: number }>();
     filteredTransactions.forEach((tx) => {
-      const c = (tx.currency || 'UZS').toUpperCase();
+      const c = (tx.currency || 'RUB').toUpperCase();
       if (!map.has(c)) map.set(c, { income: 0, expense: 0 });
       if (tx.type === 'income') {
         map.get(c)!.income += Math.abs(tx.amount);
@@ -118,81 +123,130 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
         map.get(c)!.expense += Math.abs(tx.amount);
       }
     });
-    return Array.from(map.entries()).map(([currency, totals]) => ({
-      currency,
-      ...totals,
-    }));
+    return Array.from(map.entries()).map(([currency, totals]) => ({ currency, ...totals }));
   }, [filteredTransactions]);
 
   return (
     <div className="space-y-4 animate-fade-in">
-      {/* Title & Actions */}
-      <div className="flex items-center justify-between pt-1">
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.25rem' }}>
         <div>
-          <h1 className="text-lg font-bold font-display tracking-tight text-white">
+          <h1
+            className="font-display"
+            style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.2 }}
+          >
             Календарь
           </h1>
-          <p className="text-xs font-mono text-[11px] text-[#8A94A6]">
+          <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '1px', fontFamily: 'var(--font-mono)' }}>
             История и выбор периода
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {onRefresh && (
             <button
               type="button"
-              onClick={() => {
-                triggerHaptic();
-                onRefresh();
-              }}
+              onClick={() => { triggerHaptic(); onRefresh(); }}
               disabled={isLoading}
-              className={`w-9 h-9 rounded-full bg-[#1E2330] border border-[#2A3142] text-[#8A94A6] hover:text-white flex items-center justify-center transition-all cursor-pointer ${
-                isLoading ? 'opacity-50' : 'hover:scale-105 active:scale-95'
-              }`}
+              style={{
+                width: '2.25rem', height: '2.25rem',
+                borderRadius: '50%',
+                border: '1px solid var(--border-secondary)',
+                background: 'var(--bg-elevated)',
+                color: 'var(--text-secondary)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                opacity: isLoading ? 0.5 : 1,
+                transition: 'opacity 0.15s',
+              }}
               title="Обновить данные"
               aria-label="Обновить данные"
             >
-              <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
+              <RefreshCw size={14} style={isLoading ? { animation: 'spin 1s linear infinite' } : {}} />
             </button>
           )}
 
-          <div className="px-3 py-1.5 rounded-full border border-[#2A3142] bg-[#1E2330] text-xs font-mono font-bold flex items-center gap-1.5 text-[#8A94A6]">
-            <Clock size={13} />
+          <div
+            style={{
+              padding: '0.3rem 0.75rem',
+              borderRadius: '999px',
+              border: '1px solid var(--border-secondary)',
+              background: 'var(--bg-elevated)',
+              fontSize: '0.7rem',
+              fontFamily: 'var(--font-mono)',
+              fontWeight: 600,
+              display: 'flex', alignItems: 'center', gap: '0.3rem',
+              color: 'var(--text-secondary)',
+            }}
+          >
+            <Clock size={11} />
             <span>{filteredTransactions.length} записей</span>
           </div>
         </div>
       </div>
 
-      {/* Period Summary Cards at the Top */}
+      {/* Period summary cards */}
       {periodTotalsByCurrency.length > 0 && (
-        <div className="space-y-3">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
           {periodTotalsByCurrency.map((total) => (
-            <div key={total.currency} className="grid grid-cols-2 gap-3">
+            <div key={total.currency} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
               {/* Expense card */}
-              <div className="p-4 rounded-[20px] border border-[#222734] bg-[#161A23] flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-[rgba(255,82,82,0.15)] text-[#FF5252]">
-                  <ArrowUpRight size={16} strokeWidth={2.5} />
+              <div
+                className="card"
+                style={{ padding: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.65rem' }}
+              >
+                <div
+                  style={{
+                    width: '2rem', height: '2rem',
+                    borderRadius: '50%',
+                    flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'var(--accent-expense-dim)',
+                    color: 'var(--accent-expense)',
+                  }}
+                >
+                  <ArrowUpRight size={15} strokeWidth={2} />
                 </div>
-                <div className="min-w-0">
-                  <div className="text-[10px] font-mono uppercase tracking-wider font-semibold text-[#8A94A6]">
+                <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                  <div style={{ fontSize: '0.6rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, color: 'var(--text-secondary)' }}>
                     Расходы
                   </div>
-                  <div className="text-xs sm:text-sm font-bold font-mono-num truncate text-[#FF5252]">
+                  <div
+                    className="font-mono-num"
+                    style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-expense)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                    title={`−${formatAmount(total.expense, total.currency)}`}
+                  >
                     −{formatAmount(total.expense, total.currency)}
                   </div>
                 </div>
               </div>
 
               {/* Income card */}
-              <div className="p-4 rounded-[20px] border border-[#222734] bg-[#161A23] flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-[rgba(0,230,118,0.15)] text-[#00E676]">
-                  <ArrowDownRight size={16} strokeWidth={2.5} />
+              <div
+                className="card"
+                style={{ padding: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.65rem' }}
+              >
+                <div
+                  style={{
+                    width: '2rem', height: '2rem',
+                    borderRadius: '50%',
+                    flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'var(--accent-income-dim)',
+                    color: 'var(--accent-income)',
+                  }}
+                >
+                  <ArrowDownRight size={15} strokeWidth={2} />
                 </div>
-                <div className="min-w-0">
-                  <div className="text-[10px] font-mono uppercase tracking-wider font-semibold text-[#8A94A6]">
+                <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                  <div style={{ fontSize: '0.6rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, color: 'var(--text-secondary)' }}>
                     Доходы
                   </div>
-                  <div className="text-xs sm:text-sm font-bold font-mono-num truncate text-[#00E676]">
+                  <div
+                    className="font-mono-num"
+                    style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-income)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                    title={`+${formatAmount(total.income, total.currency)}`}
+                  >
                     +{formatAmount(total.income, total.currency)}
                   </div>
                 </div>
@@ -202,27 +256,42 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
         </div>
       )}
 
-      {/* Date Range Selection Card */}
-      <div className="p-4 rounded-[20px] border border-[#222734] bg-[#161A23] space-y-3.5">
-        {/* Specific Period Tabs: Today / Week / Month / Custom */}
-        <div className="grid grid-cols-4 p-1 rounded-[14px] bg-[#1E2330] border border-[#2A3142]">
-          {[
-            { id: 'today', label: 'Сегодня' },
-            { id: 'week', label: '7 дней' },
-            { id: 'month', label: 'Месяц' },
-            { id: 'custom', label: 'Период' },
-          ].map((item) => {
+      {/* Date range filter card */}
+      <div
+        className="card"
+        style={{ padding: '0.875rem 1rem' }}
+      >
+        {/* Period tabs */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '0.25rem',
+            padding: '0.25rem',
+            borderRadius: '14px',
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border-subtle)',
+          }}
+        >
+          {PERIOD_TABS.map((item) => {
             const isActive = activeTab === item.id;
             return (
               <button
                 key={item.id}
                 type="button"
-                onClick={() => handleSelectTab(item.id as TabKey)}
-                className={`py-2 rounded-[10px] text-xs font-bold transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-[#161A23] text-white shadow-sm border border-[#2A3142]'
-                    : 'text-[#8A94A6] hover:text-white opacity-70 hover:opacity-100'
-                }`}
+                onClick={() => handleSelectTab(item.id)}
+                style={{
+                  padding: '0.5rem 0.25rem',
+                  borderRadius: '10px',
+                  fontSize: '0.7rem',
+                  fontWeight: isActive ? 700 : 600,
+                  fontFamily: 'var(--font-display)',
+                  cursor: 'pointer',
+                  border: isActive ? '1px solid var(--border-secondary)' : '1px solid transparent',
+                  background: isActive ? 'var(--bg-card)' : 'transparent',
+                  color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
+                  transition: 'all 0.15s',
+                }}
               >
                 {item.label}
               </button>
@@ -230,60 +299,94 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
           })}
         </div>
 
-        {/* Custom Date Pickers (visible if custom tab or user chooses to edit) */}
+        {/* Custom date pickers */}
         {activeTab === 'custom' && (
-          <div className="grid grid-cols-2 gap-3 pt-1 animate-fade-in">
+          <div
+            className="animate-fade-in"
+            style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem', marginTop: '0.75rem' }}
+          >
             <div>
-              <label className="block text-[10px] font-mono uppercase tracking-wider font-bold mb-1.5 text-[#8A94A6]">
+              <label
+                style={{ display: 'block', fontSize: '0.6rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, marginBottom: '0.375rem', color: 'var(--text-secondary)' }}
+              >
                 С даты:
               </label>
               <input
                 type="date"
                 value={dateFrom}
-                onChange={(e) => {
-                  onChangeDateRange(e.target.value, dateTo);
+                onChange={(e) => onChangeDateRange(e.target.value, dateTo)}
+                style={{
+                  width: '100%',
+                  fontSize: '0.75rem',
+                  fontFamily: 'var(--font-mono)',
+                  padding: '0.5rem 0.65rem',
+                  borderRadius: '12px',
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border-secondary)',
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                  boxSizing: 'border-box',
                 }}
-                className="w-full text-xs font-mono rounded-xl p-2.5 bg-[#1E2330] border border-[#2A3142] text-white outline-none transition-colors"
               />
             </div>
-
             <div>
-              <label className="block text-[10px] font-mono uppercase tracking-wider font-bold mb-1.5 text-[#8A94A6]">
+              <label
+                style={{ display: 'block', fontSize: '0.6rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, marginBottom: '0.375rem', color: 'var(--text-secondary)' }}
+              >
                 По дату:
               </label>
               <input
                 type="date"
                 value={dateTo}
-                onChange={(e) => {
-                  onChangeDateRange(dateFrom, e.target.value);
+                onChange={(e) => onChangeDateRange(dateFrom, e.target.value)}
+                style={{
+                  width: '100%',
+                  fontSize: '0.75rem',
+                  fontFamily: 'var(--font-mono)',
+                  padding: '0.5rem 0.65rem',
+                  borderRadius: '12px',
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border-secondary)',
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                  boxSizing: 'border-box',
                 }}
-                className="w-full text-xs font-mono rounded-xl p-2.5 bg-[#1E2330] border border-[#2A3142] text-white outline-none transition-colors"
               />
             </div>
           </div>
         )}
 
-        {/* Type Filter Buttons (Все / Только расходы / Только доходы) */}
-        <div className="flex items-center gap-1.5 pt-2 border-t border-[#222734]">
-          {[
-            { id: 'all', label: 'Все' },
-            { id: 'expense', label: 'Расходы' },
-            { id: 'income', label: 'Доходы' },
-          ].map((f) => {
+        {/* Type filter pills */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            marginTop: '0.75rem',
+            paddingTop: '0.75rem',
+            borderTop: '1px solid var(--border-subtle)',
+          }}
+        >
+          {FILTER_TABS.map((f) => {
             const isSelected = filterType === f.id;
             return (
               <button
                 key={f.id}
                 type="button"
-                onClick={() => {
-                  triggerHaptic();
-                  setFilterType(f.id as any);
+                onClick={() => { triggerHaptic(); setFilterType(f.id); }}
+                style={{
+                  flex: 1,
+                  padding: '0.4rem 0.35rem',
+                  borderRadius: '10px',
+                  fontSize: '0.7rem',
+                  fontWeight: isSelected ? 700 : 600,
+                  fontFamily: 'var(--font-display)',
+                  cursor: 'pointer',
+                  border: isSelected ? '1px solid var(--border-secondary)' : '1px solid transparent',
+                  background: isSelected ? 'var(--bg-elevated)' : 'transparent',
+                  color: isSelected ? 'var(--text-primary)' : 'var(--text-muted)',
+                  transition: 'all 0.15s',
                 }}
-                className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                  isSelected
-                    ? 'font-bold bg-[#1E2330] text-white border border-[#2A3142] shadow-sm'
-                    : 'text-[#8A94A6] hover:text-white opacity-60 hover:opacity-100'
-                }`}
               >
                 {f.label}
               </button>
@@ -292,24 +395,33 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
         </div>
       </div>
 
-      {/* Transactions List with Delete Trigger */}
-      <div className="space-y-2.5 pt-1">
+      {/* Transactions list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingTop: '0.25rem' }}>
         {isLoading ? (
-          <div className="py-12 flex flex-col items-center justify-center gap-3">
-            <Loader2 size={28} className="animate-spin text-white" />
-            <p className="text-xs font-mono text-[#8A94A6]">
-              Загрузка транзакций...
-            </p>
+          <div style={{ padding: '3rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+            <Loader2 size={26} style={{ color: 'var(--text-secondary)', animation: 'spin 1s linear infinite' }} />
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>Загрузка транзакций...</p>
           </div>
         ) : filteredTransactions.length === 0 ? (
-          <div className="p-8 rounded-[20px] border border-[#222734] bg-[#161A23] text-center space-y-3">
-            <div className="w-12 h-12 mx-auto rounded-2xl flex items-center justify-center bg-[#1E2330] text-[#555F73]">
-              <Inbox size={24} />
+          <div
+            className="card"
+            style={{ padding: '2rem 1rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}
+          >
+            <div
+              style={{
+                width: '3rem', height: '3rem',
+                borderRadius: '14px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'var(--bg-elevated)',
+                color: 'var(--text-muted)',
+              }}
+            >
+              <Inbox size={22} strokeWidth={1.5} />
             </div>
-            <div className="text-sm font-bold font-display text-white">
+            <div className="font-display" style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
               За выбранный период ничего не найдено
             </div>
-            <p className="text-xs leading-relaxed max-w-xs mx-auto text-[#8A94A6]">
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.5, maxWidth: '20rem' }}>
               Попробуйте выбрать другой диапазон дат или сбросить фильтры.
             </p>
           </div>
@@ -318,7 +430,7 @@ export const CalendarScreen: React.FC<CalendarScreenProps> = ({
             <TransactionItem
               key={tx.id}
               transaction={tx}
-              showDelete={true}
+              showDelete
               onDeleteRequest={onDeleteRequest}
             />
           ))

@@ -12,53 +12,90 @@ interface ToastProps {
   onDismiss: () => void;
 }
 
+const AUTO_DISMISS_MS = 5000;
+
 export const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
   useEffect(() => {
     if (!toast) return;
-    const timer = setTimeout(() => {
-      onDismiss();
-    }, 5000);
+    const timer = setTimeout(onDismiss, AUTO_DISMISS_MS);
     return () => clearTimeout(timer);
   }, [toast, onDismiss]);
 
   if (!toast) return null;
 
-  const isError = toast.type === 'error';
+  const isError   = toast.type === 'error';
   const isSuccess = toast.type === 'success';
 
+  const accentColor = isError
+    ? 'var(--accent-expense)'
+    : isSuccess
+    ? 'var(--accent-income)'
+    : 'var(--text-secondary)';
+
   return (
-    <div className="fixed top-4 left-4 right-4 z-50 flex justify-center pointer-events-none">
+    <div
+      style={{
+        position: 'fixed',
+        top: '1rem',
+        left: '1rem',
+        right: '1rem',
+        zIndex: 50,
+        display: 'flex',
+        justifyContent: 'center',
+        pointerEvents: 'none',
+      }}
+    >
       <div
         id="app-toast-message"
-        className="pointer-events-auto flex items-start gap-3 p-4 rounded-[18px] border shadow-2xl max-w-md w-full animate-bounce-in transition-all bg-[#161A23] backdrop-blur-xl"
+        className="card animate-bounce-in"
         style={{
-          borderColor: isError ? '#FF5252' : isSuccess ? '#00E676' : '#2A3142',
-          boxShadow: isError
-            ? '0 12px 30px -10px rgba(255,82,82,0.3)'
-            : isSuccess
-            ? '0 12px 30px -10px rgba(0,230,118,0.3)'
-            : '0 12px 30px -10px rgba(0,0,0,0.6)',
+          pointerEvents: 'auto',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '0.75rem',
+          padding: '0.875rem 1rem',
+          maxWidth: '28rem',
+          width: '100%',
+          borderLeft: `3px solid ${accentColor}`,
+          boxShadow: `0 12px 32px -8px rgba(0,0,0,0.4), 0 0 0 1px var(--border-card)`,
         }}
       >
-        <div className="shrink-0 mt-0.5">
-          {isError && <AlertCircle size={18} className="text-[#FF5252]" />}
-          {isSuccess && <CheckCircle2 size={18} className="text-[#00E676]" />}
+        <div style={{ flexShrink: 0, marginTop: '1px' }}>
+          {isError   && <AlertCircle   size={17} style={{ color: accentColor }} />}
+          {isSuccess && <CheckCircle2  size={17} style={{ color: accentColor }} />}
         </div>
-        <div className="flex-1 min-w-0">
+
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div
-            className="text-[11px] font-bold font-mono uppercase tracking-wider mb-0.5"
-            style={{ color: isError ? '#FF5252' : isSuccess ? '#00E676' : '#FFFFFF' }}
+            style={{
+              fontSize: '0.65rem',
+              fontFamily: 'var(--font-mono)',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              marginBottom: '2px',
+              color: accentColor,
+            }}
           >
-            {isError ? 'Внимание' : isSuccess ? 'Успешно' : 'Уведомление'}
+            {isError ? 'Ошибка' : isSuccess ? 'Успешно' : 'Уведомление'}
           </div>
-          <div className="text-xs leading-relaxed text-white">
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-primary)', lineHeight: 1.4 }}>
             {toast.text}
           </div>
         </div>
+
         <button
           type="button"
           onClick={onDismiss}
-          className="shrink-0 text-[#8A94A6] hover:text-white p-1 transition-colors cursor-pointer"
+          style={{
+            flexShrink: 0,
+            color: 'var(--text-muted)',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '0.125rem',
+            transition: 'color 0.15s',
+          }}
           aria-label="Закрыть"
         >
           <X size={14} />
